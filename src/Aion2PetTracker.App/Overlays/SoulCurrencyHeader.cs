@@ -50,8 +50,17 @@ internal sealed class SoulCurrencyHeader : UiControl
                 _reference = new Bitmap(decoded);
             }
         }
+        // The sampled icons sit on dark, noisy tile backgrounds. Derive alpha from brightness so the tile
+        // disappears, the crystal stays opaque and its glow fades out softly against the glass.
         using var attributes = new ImageAttributes();
-        attributes.SetColorKey(Color.Black, Color.FromArgb(12, 12, 12));
+        attributes.SetColorMatrix(new ColorMatrix(
+        [
+            [1, 0, 0, 1.1f, 0],
+            [0, 1, 0, 1.1f, 0],
+            [0, 0, 1, 1.1f, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, -.4f, 1]
+        ]));
         for (int i = 0; i < 6; i++)
         {
             float firstWidth = (W - 120) / 5;
@@ -71,11 +80,11 @@ internal sealed class SoulCurrencyHeader : UiControl
             }
             var value = View.Count(Order[i]);
             string count = value is null ? "—" : (View.Uncertain ? "≈" : "") + value.Value.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
-            float textLeft = left + inset + 15, textWidth = right - textLeft - (i == 5 ? 10 : 3);
+            float textLeft = left + inset + 19, textWidth = right - textLeft - (i == 5 ? 12 : 3);
             float size = 9;
             while (size > 6.5f && g.MeasureString(count, Glass.Semibold(size)).Width > textWidth)
                 size -= .5f;
-            Theme.TextAt(g, count, Glass.Semibold(size), value is null ? Glass.Faint : View.Cached ? Glass.Subtle : Glass.Text, new(textLeft, 8, textWidth, H - 16), StringAlignment.Center);
+            Theme.TextAt(g, count, Glass.Semibold(size), value is null ? Glass.Faint : View.Cached ? Glass.Subtle : Glass.Text, new(textLeft, 8, textWidth, H - 16));
         }
     }
     protected override void Dispose(bool disposing)
