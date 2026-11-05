@@ -71,7 +71,8 @@ internal abstract class SettingsItem : UiControl
     protected bool ShowFocus => Focused && ShowFocusCues;
 }
 
-/// <summary>Vertical, DPI-aware, scrollable stack of settings items.</summary>
+/// <summary>Vertical, DPI-aware, scrollable stack of settings items. Every child is laid out:
+/// Control.Visible reads false for all children until the window is shown, so it cannot drive measurement.</summary>
 internal sealed class SettingsStack : Panel
 {
     public float Padding2 { get; init; } = 20;
@@ -88,7 +89,7 @@ internal sealed class SettingsStack : Panel
         {
             float y = Padding2;
             foreach (Control c in Controls)
-                if (c is SettingsItem item && c.Visible)
+                if (c is SettingsItem item)
                     y += item.GapAbove + item.LogicalHeight + Gap;
             return y - Gap + Padding2;
         }
@@ -101,7 +102,7 @@ internal sealed class SettingsStack : Panel
         float y = Padding2;
         foreach (Control c in Controls)
         {
-            if (c is not SettingsItem item || !c.Visible)
+            if (c is not SettingsItem item)
                 continue;
             y += item.GapAbove;
             int top = (int)Math.Round(y * k) + AutoScrollPosition.Y, height = (int)Math.Round(item.LogicalHeight * k);
