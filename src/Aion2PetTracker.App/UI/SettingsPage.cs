@@ -39,8 +39,13 @@ internal sealed class SettingsPage
         Stack.ResumeLayout();
     }
 
-    /// <summary>Window client size in pixels for the current DPI, sized to fit without scrolling where possible.</summary>
-    public Size PreferredClientSize(float k) => new((int)Math.Round(500 * k), (int)Math.Round(Math.Min(Stack.ContentHeight, 760) * k));
+    /// <summary>Window client size in pixels for the current DPI: the full content height when the screen allows,
+    /// otherwise the available working area minus room for the title bar (the stack then scrolls).</summary>
+    public Size PreferredClientSize(float k)
+    {
+        float available = (Screen.PrimaryScreen?.WorkingArea.Height ?? 1040) / k - 60;
+        return new((int)Math.Round(500 * k), (int)Math.Round(Math.Min(Stack.ContentHeight, Math.Max(420, available)) * k));
+    }
 
     /// <summary>Renders the page with demo status, without a capture service.</summary>
     internal static void RenderPreview(string path)

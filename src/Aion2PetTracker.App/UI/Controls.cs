@@ -83,6 +83,18 @@ internal sealed class SettingsStack : Panel
         BackColor = Ui.Window;
         DoubleBuffered = true;
     }
+    // Dark scrollbars on Windows 10 1809+ and 11; older systems keep the default theme.
+    [System.Runtime.InteropServices.DllImport("uxtheme.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int SetWindowTheme(IntPtr hwnd, string? app, string? idList);
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        try
+        {
+            SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { }
+    }
     public float ContentHeight
     {
         get
