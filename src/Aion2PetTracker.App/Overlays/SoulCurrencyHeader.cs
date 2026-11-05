@@ -40,13 +40,7 @@ internal sealed class SoulCurrencyHeader : UiControl
     internal void DrawOverlay(Graphics g, float W, float H)
     {
         var frame = new RectangleF(1, 3, W - 2, H - 6);
-        var gold = Color.FromArgb(218, 166, 79);
-        using (var path = Theme.Round(frame, 10))
-        using (var fill = new LinearGradientBrush(frame, Color.FromArgb(13, 38, 61), Color.FromArgb(3, 12, 21), 90f))
-            g.FillPath(fill, path);
-        Theme.Stroke(g, frame, Color.FromArgb(101, 65, 26), 10, 2.7f);
-        Theme.Stroke(g, new(2, 4, W - 4, H - 8), gold, 9, 1.1f);
-        Theme.Stroke(g, new(4, 6, W - 8, H - 12), Color.FromArgb(53, 137, 195), 8, .7f);
+        Glass.Panel(g, frame, frame.Height / 2);
         if (_reference is null)
         {
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("gameicon/SoulHeaderReference.png");
@@ -64,23 +58,24 @@ internal sealed class SoulCurrencyHeader : UiControl
             float left = i * firstWidth, right = i == 5 ? W : (i + 1) * firstWidth;
             if (i > 0)
             {
-                using var line = new Pen(gold, .8f);
-                g.DrawLine(line, left, 6, left, H - 6);
-                using var jewel = new SolidBrush(Color.FromArgb(123, 206, 255));
-                g.FillPolygon(jewel, new PointF[] { new(left, 4), new(left + 2, 7), new(left, 10), new(left - 2, 7) });
+                using var line = new Pen(Glass.Divider, 1);
+                g.DrawLine(line, left, 13, left, H - 13);
             }
+            // The first segment starts at the rounded end of the pill; nudge its content inwards.
+            float inset = i == 0 ? 9 : 6;
             if (_reference is not null)
             {
                 var src = Icons[i];
-                var target = new Rectangle((int)left + 5, 8, 20, 27);
+                var target = new Rectangle((int)(left + inset), 11, 15, 20);
                 g.DrawImage(_reference, target, src.X, src.Y, src.Width, src.Height, GraphicsUnit.Pixel, attributes);
             }
             var value = View.Count(Order[i]);
             string count = value is null ? "—" : (View.Uncertain ? "≈" : "") + value.Value.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
+            float textLeft = left + inset + 15, textWidth = right - textLeft - (i == 5 ? 10 : 3);
             float size = 9;
-            while (size > 6.5f && g.MeasureString(count, Theme.Font(size, true)).Width > right - left - 27)
+            while (size > 6.5f && g.MeasureString(count, Glass.Semibold(size)).Width > textWidth)
                 size -= .5f;
-            Theme.TextAt(g, count, Theme.Font(size, true), value is null ? Theme.Muted : Color.FromArgb(255, 236, 198), new(left + 23, 8, right - left - 26, H - 16), StringAlignment.Center);
+            Theme.TextAt(g, count, Glass.Semibold(size), value is null ? Glass.Faint : View.Cached ? Glass.Subtle : Glass.Text, new(textLeft, 8, textWidth, H - 16), StringAlignment.Center);
         }
     }
     protected override void Dispose(bool disposing)

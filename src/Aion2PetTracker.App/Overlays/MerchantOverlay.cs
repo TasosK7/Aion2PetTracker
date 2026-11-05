@@ -150,46 +150,51 @@ internal sealed class MerchantOverlay : Form
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
         g.ScaleTransform(_scale, _scale);
         float w = Width / _scale, h = Height / _scale;
-        var gold = Color.FromArgb(218, 166, 79);
-        var cream = Color.FromArgb(255, 235, 193);
         var frame = new RectangleF(1.5f, 3, w - 3, h - 6);
-        using (var path = Theme.Round(frame, 12))
-        using (var fill = new LinearGradientBrush(frame, Color.FromArgb(17, 39, 60), Color.FromArgb(4, 13, 23), 90f))
-            g.FillPath(fill, path);
-        Theme.Stroke(g, frame, gold, 12, 1.3f);
-        Theme.Stroke(g, new(4, 6, w - 8, h - 12), Color.FromArgb(64, 129, 177), 10, .7f);
-        Theme.TextAt(g, "CLOUD MERCHANT · " + (_view!.Tab == MerchantTab.Special ? "SPECIAL" : "PETS"), Theme.Font(8.5f, true), gold, new(12, 8, w - 44, 18));
+        Glass.Panel(g, frame, 14);
+        // Title with a tab chip, character underneath.
+        var titleFont = Glass.Semibold(9.5f);
+        Theme.TextAt(g, "Cloud Merchant", titleFont, Glass.Text, new(14, 8, w - 60, 19));
+        float titleWidth = g.MeasureString("Cloud Merchant", titleFont, PointF.Empty, StringFormat.GenericTypographic).Width;
+        Glass.Chip(g, _view!.Tab == MerchantTab.Special ? "SPECIAL" : "PETS", Glass.Semibold(6.5f), Glass.Accent, 14 + titleWidth + 8, 10, 15);
         string character = _view.Character is { } name ? (_view.CharacterConfirmed ? name : "Last: " + name) : "Detecting character";
-        Theme.TextAt(g, character, Theme.Font(7.5f), Theme.Muted, new(12, 26, w - 24, 16));
+        Theme.TextAt(g, character, Theme.Font(7.5f), Glass.Subtle, new(14, 26, w - 28, 15));
         if (!_prefs.PetSoulsLocked)
-            Theme.TextAt(g, "×", Theme.Font(13), Theme.Muted, new(w - 27, 8, 20, 20), StringAlignment.Center);
+        {
+            // Hit area stays the original top-right 30 x 34 region.
+            var close = new RectangleF(w - 28, 9, 18, 18);
+            using (var bg = new SolidBrush(Color.FromArgb(22, 255, 255, 255)))
+                g.FillEllipse(bg, close);
+            using var cross = new Pen(Glass.Subtle, 1.2f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+            g.DrawLine(cross, close.X + 6, close.Y + 6, close.Right - 6, close.Bottom - 6);
+            g.DrawLine(cross, close.Right - 6, close.Y + 6, close.X + 6, close.Bottom - 6);
+        }
+        using (var divider = new Pen(Glass.Divider, 1))
+            g.DrawLine(divider, 12, 43.5f, w - 12, 43.5f);
+        var culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
         for (int i = 0; i < _view.Rows.Count; i++)
         {
             var row = _view.Rows[i];
             float x = (i / _rowsPerColumn) * 298, y = 46 + (i % _rowsPerColumn) * 54;
-            using (var line = new Pen(Color.FromArgb(70, 126, 153, 179), .6f))
-                g.DrawLine(line, x + 12, y - 2, x + 278, y - 2);
-            if (Portrait(row.PetId) is { } portrait)
+            if (i % _rowsPerColumn > 0)
             {
-                var state = g.Save();
-                using var circle = new GraphicsPath();
-                circle.AddEllipse(x + 10, y + 6, 35, 35);
-                g.SetClip(circle);
-                g.DrawImage(portrait, new RectangleF(x + 10, y + 6, 35, 35));
-                g.Restore(state);
-                using var pen = new Pen(gold, .8f);
-                g.DrawEllipse(pen, x + 10, y + 6, 35, 35);
+                using var line = new Pen(Glass.Divider, 1);
+                g.DrawLine(line, x + 54, y - 1.5f, x + 280, y - 1.5f);
             }
-            else
-                Theme.TextAt(g, "?", Theme.Font(15, true), Theme.Muted, new(x + 10, y + 6, 35, 35), StringAlignment.Center);
-            Theme.TextAt(g, row.Name, Theme.Font(9.2f, true), cream, new(x + 51, y, 229, 19));
-            Theme.TextAt(g, row.Genus, Theme.Font(7.5f), Theme.Muted, new(x + 51, y + 18, 70, 15));
+            var accent = Glass.GroupAccent(row.Genus);
+            bool max = row.Progress?.Level == 3;
+            Glass.Portrait(g, Portrait(row.PetId), new(x + 13, y + 8, 33, 33), accent, row.Name);
+            Theme.TextAt(g, row.Name, Glass.Semibold(9), Glass.Text, new(x + 54, y + 1, 226, 18));
+            Glass.Dot(g, x + 57, y + 26, 5, accent);
+            Theme.TextAt(g, row.Genus, Theme.Font(7.5f), Glass.Subtle, new(x + 63, y + 18, 70, 15));
             string progress = row.Progress is { } p ? (row.Uncertain ? "≈ " : "") + p.Label : "Total unknown";
-            Theme.TextAt(g, progress, Theme.Font(7.8f, true), row.Progress?.Level == 3 ? Color.FromArgb(142, 218, 163) : cream, new(x + 124, y + 18, 154, 16), StringAlignment.Far);
-            string total = row.Progress is { } t ? "Total souls: " + (row.Uncertain ? "≈ " : "") + t.Total.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("en-US")) : "No saved data yet";
-            Theme.TextAt(g, total, Theme.Font(7.6f), Theme.Muted, new(x + 51, y + 34, 229, 16));
+            Theme.TextAt(g, progress, Glass.Semibold(7.8f), row.Progress is null ? Glass.Faint : max ? Glass.Success : Glass.Text, new(x + 130, y + 18, 150, 16), StringAlignment.Far);
+            string total = row.Progress is { } t ? "Total " + (row.Uncertain ? "≈ " : "") + t.Total.ToString("N0", culture) : "No saved data yet";
+            Theme.TextAt(g, total, Theme.Font(7.5f), Glass.Faint, new(x + 54, y + 34, 120, 16));
+            if (row.Progress is { } bar)
+                Glass.Progress(g, new(x + 190, y + 40, 90, 4), max ? 1 : (float)bar.Current / bar.Goal, max ? Glass.Success : accent);
         }
-        Theme.TextAt(g, _view.Rows.Any(r => r.Uncertain) ? "≈ Possible missed changes" : _view.Rows.Any(r => r.Cached) ? "Saved data" : "Your soul balance", Theme.Font(7.5f), Theme.Muted, new(12, h - 25, w - 24, 17), StringAlignment.Center);
+        Theme.TextAt(g, _view.Rows.Any(r => r.Uncertain) ? "≈ Possible missed changes" : _view.Rows.Any(r => r.Cached) ? "Saved data" : "Your soul balance", Theme.Font(7.5f), Glass.Faint, new(12, h - 25, w - 24, 17), StringAlignment.Center);
         return bitmap;
     }
     internal void RenderPreview(string path, MerchantView view, float scale = 1)

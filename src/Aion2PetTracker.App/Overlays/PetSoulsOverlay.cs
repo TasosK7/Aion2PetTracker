@@ -35,79 +35,24 @@ internal sealed class PetSoulBoard : UiControl
     {
         if (Row is not { } r)
             return;
-        var gold = Color.FromArgb(218, 166, 79);
-        var cream = Color.FromArgb(255, 235, 193);
+        // Keep a 1px transparent margin: the overlay checks require clear outer columns and corners.
         var area = new RectangleF(1, 3, W - 2, H - 6);
-        using (var shape = Theme.Round(area, 13))
-        using (var fill = new LinearGradientBrush(area, Color.FromArgb(21, 43, 67), Color.FromArgb(5, 12, 23), 90f))
-            g.FillPath(fill, shape);
-        Theme.Stroke(g, area, Color.FromArgb(103, 66, 25), 13, 2.8f);
-        Theme.Stroke(g, new(2, 4, W - 4, H - 8), gold, 12, 1.2f);
-        Theme.Stroke(g, new(4, 6, W - 8, H - 12), Color.FromArgb(83, 124, 158), 11, .7f);
-        using (var shine = new Pen(Color.FromArgb(65, 158, 196, 224), .7f))
-            g.DrawLine(shine, 77, 10, W - 18, 10);
-        // Static curves and ornament; repaint only when a real value changes.
-        var oldClip = g.Save();
-        using (var clip = Theme.Round(new(5, 7, W - 10, H - 14), 10))
-            g.SetClip(clip);
-        using (var line = new Pen(Color.FromArgb(23, 92, 154, 216), 5))
-            g.DrawBezier(line, 53, H - 5, W * .5f, -30, W * .6f, H + 10, W - 9, 15);
-        g.Restore(oldClip);
-        var portrait = new RectangleF(9, 7, 62, 62);
-        using (var bg = new SolidBrush(Color.FromArgb(4, 14, 24)))
-            g.FillEllipse(bg, portrait);
-        using (var halo = new Pen(Color.FromArgb(65, 215, 157, 65), 5))
-            g.DrawEllipse(halo, portrait);
-        using (var ring = new Pen(cream, 1.3f))
-            g.DrawEllipse(ring, portrait);
-        if (Portrait(r.PetId) is { } image)
-        {
-            var saved = g.Save();
-            using var circle = new GraphicsPath();
-            circle.AddEllipse(12, 10, 56, 56);
-            g.SetClip(circle);
-            g.DrawImage(image, new Rectangle(12, 10, 56, 56));
-            g.Restore(saved);
-        }
-        else
-            Theme.TextAt(g, "?", Theme.Font(18, true), Theme.Muted, portrait, StringAlignment.Center);
-        void Jewel(float x, float y, float size)
-        {
-            PointF[] points = [new(x, y - size), new(x + size * .48f, y), new(x, y + size), new(x - size * .48f, y)];
-            using var b = new LinearGradientBrush(new RectangleF(x - size, y - size, size * 2, size * 2), cream, gold, 60f);
-            g.FillPolygon(b, points);
-            using var p = new Pen(gold, .6f);
-            g.DrawPolygon(p, points);
-        }
-        Jewel(40, 8, 6);
-        Jewel(40, 68, 5);
-        Jewel(9, 38, 4);
-        Jewel(71, 38, 4);
-        Jewel(W * .5f, 4, 3);
-        Jewel(W * .5f, H - 4, 3);
-        Theme.TextAt(g, r.Name, Theme.Font(11, true), cream, new(81, 10, W - 133, 24));
-        var badge = new RectangleF(W - 47, 11, 36, 24);
-        Theme.Fill(g, badge, Color.FromArgb(11, 24, 38), 6);
-        Theme.Stroke(g, badge, gold, 6);
-        Theme.TextAt(g, r.Notification ?? $"+{r.RecentGain}", Theme.Font(r.Notification is null ? 11 : 8.5f, true), Color.FromArgb(255, 215, 108), badge, StringAlignment.Center);
-        var group = r.Genus + (Demo ? " · PREVIEW" : r.Progress is null ? $" · +{r.SessionGain} this session" : "");
-        Theme.TextAt(g, group, Theme.Font(8), Color.FromArgb(162, 185, 213), new(82, 35, 126, 19));
-        Theme.TextAt(g, r.Progress is { } progressLabel ? (r.Uncertain ? "≈ " : "") + progressLabel.Label : "Total unknown", Theme.Font(9, true), r.Progress is null ? Theme.Muted : cream, new(207, 34, W - 219, 21), StringAlignment.Far);
-        var bar = new RectangleF(81, 59, W - 94, 9);
-        Theme.Fill(g, bar, Color.FromArgb(4, 10, 18), 5);
-        Theme.Stroke(g, bar, gold, 5, .7f);
-        Theme.Fill(g, new(bar.X + 3, bar.Y + 3, bar.Width - 6, 3), Color.FromArgb(33, 49, 68), 2);
-        if (r.Progress is { } p)
-        {
-            float ratio = p.Level == 3 ? 1 : Math.Clamp((float)p.Current / p.Goal, 0, 1);
-            if (ratio > 0)
-            {
-                var progress = new RectangleF(bar.X + 2, bar.Y + 2, Math.Max(1, (bar.Width - 4) * ratio), 5);
-                using var path = Theme.Round(progress, 3);
-                using var goldFill = new LinearGradientBrush(progress, Color.FromArgb(255, 245, 150), Color.FromArgb(237, 147, 31), 90f);
-                g.FillPath(goldFill, path);
-            }
-        }
+        Glass.Panel(g, area, 14);
+        var accent = Glass.GroupAccent(r.Genus);
+        bool max = r.Progress?.Level == 3;
+        Glass.Portrait(g, Portrait(r.PetId), new(area.X + 11, area.Y + (area.Height - 48) / 2, 48, 48), accent, r.Name);
+        float left = area.X + 71, right = area.Right - 13;
+        // Gain or notification chip, top right.
+        var chip = Glass.Chip(g, r.Notification ?? $"+{r.RecentGain}", Glass.Semibold(8.5f), r.Notification is null ? accent : Glass.Accent, right, area.Y + 10, 19, alignRight: true);
+        Theme.TextAt(g, r.Name, Glass.Semibold(10.5f), Glass.Text, new(left, area.Y + 9, chip.X - left - 6, 21));
+        // Group line: coloured dot, group name and session context.
+        Glass.Dot(g, left + 3, area.Y + 38, 6, accent);
+        var group = r.Genus + (Demo ? " · Preview" : r.Progress is null ? $" · +{r.SessionGain} this session" : "");
+        Theme.TextAt(g, group, Theme.Font(8), Glass.Subtle, new(left + 10, area.Y + 30, 150, 16));
+        string label = r.Progress is { } progressLabel ? (r.Uncertain ? "≈ " : "") + progressLabel.Label : "Total unknown";
+        Theme.TextAt(g, label, Glass.Semibold(8.5f), r.Progress is null ? Glass.Faint : max ? Glass.Success : Glass.Text, new(left + 150, area.Y + 30, right - left - 150, 16), StringAlignment.Far);
+        float ratio = r.Progress is { } p ? (max ? 1 : (float)p.Current / p.Goal) : 0;
+        Glass.Progress(g, new(left, area.Y + 52, right - left, 6), ratio, max ? Glass.Success : accent);
     }
     protected override void Dispose(bool disposing)
     {
