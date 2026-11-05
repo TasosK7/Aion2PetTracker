@@ -66,7 +66,8 @@ internal sealed class SettingsPage
         page.Status.SetLine(StorageLine, Tone.Neutral, "Autosave active · 12,408 packets received");
         page.Status.SetLine(ShopLine, Tone.Neutral, "Waiting for shop offers · open Pets or Special");
         form.Controls.Add(page.Stack);
-        form.ClientSize = page.PreferredClientSize(1);
+        // Full content height regardless of the build machine's screen, so the preview shows the whole page.
+        form.ClientSize = new(500, (int)Math.Ceiling(page.Stack.ContentHeight));
         form.Show();
         Application.DoEvents();
         using var bitmap = new Bitmap(form.ClientSize.Width, form.ClientSize.Height);
