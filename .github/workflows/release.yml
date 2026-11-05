@@ -1,0 +1,48 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Check the tag matches the project version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ("v$version" -ne $env:GITHUB_REF_NAME) { throw "Tag $env:GITHUB_REF_NAME does not match project version $version" }
+      - name: Restore, test and publish
+        shell: pwsh
+        run: ./scripts/Build.ps1
+      - name: Package the portable ZIP
+        shell: pwsh
+        run: |
+          $stage = 'artifacts/release/Aion2-Pet-Tracker'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item artifacts/publish/Aion2PetTracker.exe, LICENSE, README.md $stage
+          Copy-Item docs, licenses $stage -Recurse
+          Compress-Archive -Path $stage -DestinationPath artifacts/release/Aion2-Pet-Tracker.zip -CompressionLevel Optimal
+          Get-ChildItem artifacts/release -File | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+          } | Set-Content artifacts/release/SHA256SUMS.txt -Encoding utf8NoBOM
+          Get-Content artifacts/release/SHA256SUMS.txt
+      - name: Publish the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $notes = "docs/RELEASE-$($tag.TrimStart('v')).md"
+          if (!(Test-Path $notes)) { throw "Missing release notes: $notes" }
+          $flags = @('--verify-tag', '--title', "Glass Edition $($tag.TrimStart('v'))", '--notes-file', $notes)
+          if ($tag.Contains('-')) { $flags += '--prerelease' }
+          gh release create $tag artifacts/release/Aion2-Pet-Tracker.zip artifacts/release/SHA256SUMS.txt --repo $env:GITHUB_REPOSITORY @flags
+          if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }

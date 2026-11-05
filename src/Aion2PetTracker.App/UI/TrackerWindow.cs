@@ -92,7 +92,7 @@ internal sealed class TrackerWindow : Form
         {
             Clipboard.SetText(JsonSerializer.Serialize(new
             {
-                AppVersion = "1.0.2",
+                AppVersion = Application.ProductVersion,
                 s.Shop,
                 _scene.GameFocused,
                 _scene.ShopVisible,
@@ -143,7 +143,7 @@ internal sealed class TrackerWindow : Form
             {
                 File.WriteAllText(_statusFile, JsonSerializer.Serialize(new
                 {
-                    release = "1.0.2",
+                    release = Application.ProductVersion,
                     at = PetTrackerService.Now,
                     Snapshot = s,
                     MerchantScene = _scene,
