@@ -96,7 +96,7 @@ internal static class Theme
     {
         try
         {
-            int on = 1, round = 2, cap = Colorref(Sidebar), border = Colorref(Line), text = Colorref(Text);
+            int on = 1, round = 2, cap = Colorref(Ui.Window), border = Colorref(Ui.CardBorder), text = Colorref(Glass.Text);
             DwmSetWindowAttribute(f.Handle, DwmUseDark, ref on, 4);
             if (captionToo)
             {

@@ -10,61 +10,67 @@ namespace Aion2PetTracker.App;
 /// </summary>
 internal sealed class NpcapSetup : Form
 {
-    private readonly Label _status = Theme.Label("", 10, true);
-    private readonly Button _continue = new() { Text = "Check again", AutoSize = true };
+    private readonly NoteItem _status = new("", Tone.Warn);
 
     internal NpcapSetup(bool preview = false)
     {
         Text = "Aion2 Pet Tracker · Setup";
         Icon = Program.LoadIcon();
-        ClientSize = new(540, 320);
-        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleMode = AutoScaleMode.None;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        BackColor = Theme.Card;
-        ForeColor = Theme.Text;
-
-        var content = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            Padding = new(24),
-            AutoScroll = true,
-            FlowDirection = FlowDirection.TopDown,
-            WrapContents = false
-        };
-        Controls.Add(content);
-        content.Controls.Add(Theme.Label("ONE-TIME SETUP", 18, true));
-        content.Controls.Add(Theme.Label(
-            "Npcap lets the tracker receive game messages.\n" +
-            "Install it once from the official website, then return here.\n\n" +
-            "1. Open the Npcap website and download its installer.\n" +
-            "2. Follow the installer and Windows permission prompts.\n" +
-            "3. Click Check again. Then start the game.", 10));
-        var download = new Button { Text = "Open official Npcap download", AutoSize = true };
-        download.Click += (_, _) =>
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo("https://npcap.com/#download") { UseShellExecute = true });
-            }
-            catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException)
-            {
-                _status.Text = "Open https://npcap.com in your browser.";
-            }
-        };
-        content.Controls.Add(download);
-        content.Controls.Add(_status);
-        var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
-        _continue.Click += (_, _) => CheckInstallation();
-        buttons.Controls.Add(_continue);
-        var exit = new Button { Text = "Exit", AutoSize = true, DialogResult = DialogResult.Cancel };
-        buttons.Controls.Add(exit);
-        content.Controls.Add(buttons);
-        CancelButton = exit;
-        AcceptButton = _continue;
+        BackColor = Ui.Window;
+        ForeColor = Glass.Text;
+        var stack = new SettingsStack { Dock = DockStyle.Fill, Padding2 = 24, Gap = 8 };
+        stack.Controls.Add(new HeaderItem("One-time setup", "Npcap lets the tracker receive game messages."));
+        stack.Controls.Add(new StepsItem(
+            "Open the official Npcap website and download its installer.",
+            "Follow the installer and the Windows permission prompts.",
+            "Click Check again, then start the game.") { GapAbove = 6 });
+        stack.Controls.Add(_status);
+        stack.Controls.Add(new ButtonBar(
+            new ButtonBar.Item("Open Npcap download", OpenDownload, Primary: true),
+            new ButtonBar.Item("Check again", CheckInstallation),
+            new ButtonBar.Item("Exit", Cancel)) { GapAbove = 4 });
+        Controls.Add(stack);
+        float k = DeviceDpi / 96f;
+        ClientSize = new((int)Math.Round(500 * k), (int)Math.Round(stack.ContentHeight * k));
         Shown += (_, _) => { Theme.Chrome(this); if (!preview) CheckInstallation(); };
+    }
+
+    private void OpenDownload()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("https://npcap.com/#download") { UseShellExecute = true });
+        }
+        catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            _status.Set("Open https://npcap.com in your browser.", Tone.Warn);
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogResult = DialogResult.Cancel;
+        Close();
+    }
+
+    // Enter checks again and Escape exits, as the former Accept/Cancel buttons did.
+    protected override bool ProcessDialogKey(Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.Escape:
+                Cancel();
+                return true;
+            case Keys.Enter:
+                CheckInstallation();
+                return true;
+        }
+        return base.ProcessDialogKey(keyData);
     }
 
     private void CheckInstallation()
@@ -75,7 +81,7 @@ internal sealed class NpcapSetup : Form
             Close();
             return;
         }
-        _status.Text = "Npcap is not installed yet.";
+        _status.Set("Npcap is not installed yet.", Tone.Warn);
     }
 
     internal static bool EnsureInstalled()
@@ -89,7 +95,9 @@ internal sealed class NpcapSetup : Form
     internal static void RenderPreview(string path)
     {
         using var setup = new NpcapSetup(preview: true);
-        setup._status.Text = "Npcap is not installed yet.";
+        setup._status.Set("Npcap is not installed yet.", Tone.Warn);
+        setup.StartPosition = FormStartPosition.Manual;
+        setup.Location = new(-10000, -10000);
         setup.Show();
         Application.DoEvents();
         using var bitmap = new Bitmap(setup.Width, setup.Height);

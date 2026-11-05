@@ -55,6 +55,7 @@ internal static class Program
     {
         Directory.CreateDirectory(folder);
         NpcapSetup.RenderPreview(Path.Combine(folder, "setup-preview.png"));
+        SettingsPage.RenderPreview(Path.Combine(folder, "settings-preview.png"));
         var prefs = new TrackerPreferences();
         using var overlay = new PetSoulsOverlay(prefs, () => { });
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
